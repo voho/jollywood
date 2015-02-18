@@ -1,4 +1,4 @@
-package cz.voho.jactor.integration.jollywood;
+package cz.voho.integration.jollywood;
 
 import static org.junit.Assert.assertEquals;
 
