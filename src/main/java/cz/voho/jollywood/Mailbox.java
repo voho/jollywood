@@ -1,21 +1,29 @@
 package cz.voho.jollywood;
 
-import java.util.LinkedList;
-import java.util.Queue;
-
 public class Mailbox {
-    private final Queue<Message> queue;
+    private final Object queueLock;
+    private QueueNode head;
+    private QueueNode tail;
 
     public Mailbox() {
-        this.queue = new LinkedList<>();
+        queueLock = new Object();
     }
 
     public Message poll() {
         Message lastMessage = null;
 
-        synchronized (queue) {
-            if (!queue.isEmpty()) {
-                lastMessage = queue.poll();
+        synchronized (queueLock) {
+            if (head != null) {
+                lastMessage = head.payload;
+
+                if (head == tail) {
+                    // removing last element
+                    head = null;
+                    tail = null;
+                } else {
+                    // general case
+                    head = head.next;
+                }
             }
         }
 
@@ -23,8 +31,27 @@ public class Mailbox {
     }
 
     public void add(final Message message) {
-        synchronized (queue) {
-            queue.add(message);
+        final QueueNode newNode = new QueueNode(message);
+
+        synchronized (queueLock) {
+            if (tail == null) {
+                // adding first element
+                head = newNode;
+                tail = newNode;
+            } else {
+                // general case
+                tail.next = newNode;
+                tail = newNode;
+            }
+        }
+    }
+
+    private static class QueueNode {
+        private final Message payload;
+        private QueueNode next;
+
+        private QueueNode(final Message payload) {
+            this.payload = payload;
         }
     }
 }

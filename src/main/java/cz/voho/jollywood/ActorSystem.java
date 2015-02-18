@@ -2,7 +2,9 @@ package cz.voho.jollywood;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -13,12 +15,14 @@ public class ActorSystem {
     private static final int INITIAL_ACTOR_CAPACITY = 100;
     private static Logger LOG = LoggerFactory.getLogger(ActorSystem.class);
     private final Collection<ActorHandle> actors;
+    private final Set<ActorHandle> processingSet;
     private final ExecutorService executorService;
 
     public ActorSystem(final int numThreads) {
         LOG.debug("Creating actor system with {} thread(s).", numThreads);
-        this.actors = Collections.synchronizedCollection(new LinkedHashSet<>(INITIAL_ACTOR_CAPACITY));
-        this.executorService = numThreads == 1
+        actors = Collections.synchronizedCollection(new LinkedHashSet<>(INITIAL_ACTOR_CAPACITY));
+        processingSet = new HashSet<>();
+        executorService = numThreads == 1
                 ? Executors.newSingleThreadExecutor()
                 : Executors.newFixedThreadPool(numThreads);
     }
@@ -36,7 +40,6 @@ public class ActorSystem {
         }
         return newHandle;
     }
-
 
     public void shutdownActor(final ActorHandle actor) {
         LOG.debug("Undefining actor {}.", actor);
@@ -62,8 +65,19 @@ public class ActorSystem {
     }
 
     public void scheduleActorProcessing(final ActorHandle actor) {
-        LOG.debug("Scheduling actor mailbox processing: {}", actor);
-        executorService.submit(actor::processMessages);
+        synchronized (processingSet) {
+            if (!processingSet.contains(actor)) {
+                processingSet.add(actor);
+                LOG.debug("Scheduling actor mailbox processing: {}", actor);
+                executorService.submit(() -> {
+                    actor.processMessages();
+
+                    synchronized (processingSet) {
+                        processingSet.remove(actor);
+                    }
+                });
+            }
+        }
     }
 
     public void shutdown() {

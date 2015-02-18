@@ -14,17 +14,21 @@ import cz.voho.jollywood.MessageContent;
 
 
 public class CounterTest {
+    private static final int NUM_EXPERIMENTS = 100;
+    private static final int NUM_THREADS = 100;
+    private static final int COUNTER_TARGET = 1000;
+
     @Test
     public void test() throws InterruptedException {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 1; i <= NUM_EXPERIMENTS; i++) {
             System.out.println("================== EXPERIMENT " + i + " ==================");
-            assertEquals(10, t());
+            assertEquals(COUNTER_TARGET, t());
         }
     }
 
     private int t() throws InterruptedException {
         final AtomicInteger result = new AtomicInteger();
-        final ActorSystem system = new ActorSystem(8);
+        final ActorSystem system = new ActorSystem(NUM_THREADS);
 
         final ActorDefinition counterDef = new ActorDefinition() {
             private int counter = 0;
@@ -48,7 +52,7 @@ public class CounterTest {
                     result.notifyAll();
                 }
             } else if (message.getSubject().equals("start")) {
-                for (int i = 0; i < 10; i++) {
+                for (int i = 0; i < COUNTER_TARGET; i++) {
                     counterRef.sendMessage(self, new MessageContent("increment", null));
                 }
                 counterRef.sendMessage(self, new MessageContent("total", null));

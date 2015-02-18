@@ -12,16 +12,14 @@ public class ActorHandle {
     private final ActorSystem system;
     private final ActorDefinition definition;
     private final Mailbox mailbox;
-    private final Object processingLock;
     private final AtomicBoolean closed;
 
     public ActorHandle(final ActorSystem system, final String name, final ActorDefinition definition) {
         this.system = system;
         this.name = name;
         this.definition = definition;
-        this.mailbox = new Mailbox();
-        this.processingLock = new Object();
-        this.closed = new AtomicBoolean(false);
+        mailbox = new Mailbox();
+        closed = new AtomicBoolean(false);
     }
 
     public ActorHandle cloneActor() {
@@ -54,23 +52,22 @@ public class ActorHandle {
     }
 
     public void processMessages() {
-        synchronized (processingLock) {
-            while (true) {
-                final Message message = mailbox.poll();
+        while (true) {
+            final Message message = mailbox.poll();
 
-                if (message != null) {
-                    LOG.debug("Processing message in {}: {}", this, message);
-                    definition.processMessage(this, message);
-                } else {
-                    LOG.debug("No more messages in {}.", this);
+            if (message != null) {
+                LOG.debug("Processing message in {}: {}", this, message);
+                definition.processMessage(this, message);
+                Thread.yield();
+            } else {
+                LOG.debug("No more messages in {}.", this);
 
-                    if (closed.get()) {
-                        LOG.debug("Last message processed, removing actor.");
-                        system.shutdownActor(this);
-                    }
-
-                    break;
+                if (closed.get()) {
+                    LOG.debug("Last message processed, removing actor.");
+                    system.shutdownActor(this);
                 }
+
+                break;
             }
         }
     }
