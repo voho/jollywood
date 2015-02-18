@@ -17,6 +17,7 @@ public class ActorSystem {
     private final Collection<ActorHandle> actors;
     private final Set<ActorHandle> processingSet;
     private final ExecutorService executorService;
+    private final Object lastActorClosedMonitor = new Object();
 
     public ActorSystem(final int numThreads) {
         LOG.debug("Creating actor system with {} thread(s).", numThreads);
@@ -50,7 +51,9 @@ public class ActorSystem {
             lastActorRemoved = actors.isEmpty();
         }
         if (lastActorRemoved) {
-            executorService.shutdown();
+            synchronized (lastActorClosedMonitor) {
+                lastActorClosedMonitor.notifyAll();
+            }
         }
     }
 
@@ -64,11 +67,11 @@ public class ActorSystem {
         }
     }
 
-    public void scheduleActorProcessing(final ActorHandle actor) {
+    public void scheduleActorProcessingOnce(final ActorHandle actor) {
         synchronized (processingSet) {
             if (!processingSet.contains(actor)) {
                 processingSet.add(actor);
-                LOG.debug("Scheduling actor mailbox processing: {}", actor);
+                LOG.debug("Scheduling actor processing: {}", actor);
                 executorService.submit(() -> {
                     actor.processMessages();
 
@@ -80,10 +83,27 @@ public class ActorSystem {
         }
     }
 
-    public void shutdown() {
-        LOG.debug("Shutting down all actors.");
+    public void closeActors() throws InterruptedException {
+        LOG.debug("Closing all actors.");
+
         synchronized (actors) {
             actors.forEach(ActorHandle::closeActor);
         }
+
+        synchronized (lastActorClosedMonitor) {
+            lastActorClosedMonitor.wait();
+        }
+    }
+
+    public void shutdown() throws InterruptedException {
+        LOG.debug("Waiting until all actors are done.");
+
+        synchronized (lastActorClosedMonitor) {
+            lastActorClosedMonitor.wait();
+        }
+
+        LOG.debug("Shutting down executor service.");
+
+        executorService.shutdown();
     }
 }

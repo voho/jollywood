@@ -14,7 +14,7 @@ import cz.voho.jollywood.MessageContent;
 
 public class CounterTest {
     private static final int NUM_EXPERIMENTS = 100;
-    private static final int NUM_THREADS = 100;
+    private static final int NUM_THREADS = 20;
     private static final int COUNTER_TARGET = 1000;
 
     @Test
@@ -38,6 +38,7 @@ public class CounterTest {
                     counter++;
                 } else if (message.getSubject().equals("total")) {
                     message.getSender().sendMessage(self, new MessageContent("total", counter));
+                    self.closeActor();
                 }
             }
         };
@@ -46,10 +47,8 @@ public class CounterTest {
 
         final ActorDefinition driverDef = (self, message) -> {
             if (message.getSubject().equals("total")) {
-                synchronized (result) {
-                    result.set((Integer) message.getBody());
-                    result.notifyAll();
-                }
+                result.set((Integer) message.getBody());
+                self.closeActor();
             } else if (message.getSubject().equals("start")) {
                 for (int i = 0; i < COUNTER_TARGET; i++) {
                     counterRef.sendMessage(self, new MessageContent("increment", null));
@@ -62,10 +61,7 @@ public class CounterTest {
 
         driverRef.sendMessage(system.getAnonymous(), new MessageContent("start", null));
 
-        synchronized (result) {
-            result.wait();
-            system.shutdown();
-            return result.get();
-        }
+        system.shutdown();
+        return result.get();
     }
 }
