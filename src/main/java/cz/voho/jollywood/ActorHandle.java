@@ -10,11 +10,6 @@ import org.slf4j.LoggerFactory;
  */
 public class ActorHandle {
     /**
-     * logger
-     */
-    private static Logger LOG = LoggerFactory.getLogger(ActorHandle.class);
-
-    /**
      * actor name
      */
     private final String name;
@@ -54,17 +49,14 @@ public class ActorHandle {
     // ===============
 
     public ActorHandle cloneActor() {
-        LOG.debug("Cloning actor: {}", this);
         return system.defineActor(name + " (clone)", definition);
     }
 
     public ActorHandle createActor(final String name, final ActorDefinition definition) {
-        LOG.debug("Creating new actor {}: {}", name, definition);
         return system.defineActor(name, definition);
     }
 
     public void closeActor() {
-        LOG.debug("Closing actor: {}", this);
         closed.set(true);
         system.scheduleActorProcessing(this);
     }
@@ -77,7 +69,6 @@ public class ActorHandle {
     }
 
     public void sendMessage(final Message message) {
-        LOG.debug("Sending message {} to {}.", message, this);
         mailbox.add(message);
         system.scheduleActorProcessing(this);
     }
@@ -87,7 +78,6 @@ public class ActorHandle {
     }
 
     public void broadcastMessage(final Message message) {
-        LOG.debug("Broadcasting message {}.", message);
         system.broadcastMessage(message);
     }
 
@@ -99,14 +89,10 @@ public class ActorHandle {
             final Message message = mailbox.poll();
 
             if (message != null) {
-                LOG.debug("Processing message in {}: {}", this, message);
                 definition.processMessage(this, message);
                 Thread.yield();
             } else {
-                LOG.debug("No more messages in {}.", this);
-
                 if (closed.get()) {
-                    LOG.debug("Last message processed, removing actor.");
                     system.shutdownActor(this);
                 }
 
