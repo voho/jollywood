@@ -12,7 +12,6 @@ import cz.voho.jollywood.ActorSystem;
 import cz.voho.jollywood.Message;
 import cz.voho.jollywood.MessageContent;
 
-
 public class CounterTest {
     private static final int NUM_EXPERIMENTS = 100;
     private static final int NUM_THREADS = 100;

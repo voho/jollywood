@@ -1,14 +1,34 @@
 package cz.voho.jollywood;
 
+/**
+ * Mailbox is an unlimited queue of messages belonging to an actor.
+ */
 public class Mailbox {
+    /**
+     * lock for accessing queue
+     */
     private final Object queueLock;
+    /**
+     * queue head pointer (oldest/first element)
+     */
     private QueueNode head;
+    /**
+     * queue tail pointer (newest/last element)
+     */
     private QueueNode tail;
 
+    /**
+     * Creates a new instance.
+     */
     public Mailbox() {
         queueLock = new Object();
     }
 
+    /**
+     * Polls an oldest (first) message from a queue.
+     *
+     * @return oldest message or NULL
+     */
     public Message poll() {
         Message lastMessage = null;
 
@@ -30,6 +50,11 @@ public class Mailbox {
         return lastMessage;
     }
 
+    /**
+     * Adds a message to the end of the queue.
+     *
+     * @param message message to be added
+     */
     public void add(final Message message) {
         final QueueNode newNode = new QueueNode(message);
 
@@ -46,6 +71,9 @@ public class Mailbox {
         }
     }
 
+    /**
+     * Single queue node (helper class).
+     */
     private static class QueueNode {
         private final Message payload;
         private QueueNode next;

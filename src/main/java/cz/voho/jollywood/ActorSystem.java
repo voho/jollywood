@@ -83,7 +83,7 @@ public class ActorSystem {
     public void shutdown() {
         LOG.debug("Shutting down all actors.");
         synchronized (actors) {
-            actors.forEach(ActorHandle::close);
+            actors.forEach(ActorHandle::closeActor);
         }
     }
 }

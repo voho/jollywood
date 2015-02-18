@@ -5,15 +5,43 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Actor handle for performing actor operations and sending messages.
+ */
 public class ActorHandle {
+    /**
+     * logger
+     */
     private static Logger LOG = LoggerFactory.getLogger(ActorHandle.class);
 
+    /**
+     * actor name
+     */
     private final String name;
+    /**
+     * parent ctor system
+     */
     private final ActorSystem system;
+    /**
+     * actor definition
+     */
     private final ActorDefinition definition;
+    /**
+     * mailbox with messages for this actor
+     */
     private final Mailbox mailbox;
+    /**
+     * closed flag
+     */
     private final AtomicBoolean closed;
 
+    /**
+     * Creates a new instance.
+     *
+     * @param system parent actor system to live in
+     * @param name actor name (just for easier debugging, does not have to be unique)
+     * @param definition actor definition
+     */
     public ActorHandle(final ActorSystem system, final String name, final ActorDefinition definition) {
         this.system = system;
         this.name = name;
@@ -21,6 +49,9 @@ public class ActorHandle {
         mailbox = new Mailbox();
         closed = new AtomicBoolean(false);
     }
+
+    // ACTOR OPERATION
+    // ===============
 
     public ActorHandle cloneActor() {
         LOG.debug("Cloning actor: {}", this);
@@ -31,6 +62,15 @@ public class ActorHandle {
         LOG.debug("Creating new actor {}: {}", name, definition);
         return system.defineActor(name, definition);
     }
+
+    public void closeActor() {
+        LOG.debug("Closing actor: {}", this);
+        closed.set(true);
+        system.scheduleActorProcessing(this);
+    }
+
+    // MESSAGE PASSING
+    // ===============
 
     public void sendMessage(final ActorHandle sender, final MessageContent messageBody) {
         sendMessage(new Message(sender, messageBody));
@@ -50,6 +90,9 @@ public class ActorHandle {
         LOG.debug("Broadcasting message {}.", message);
         system.broadcastMessage(message);
     }
+
+    // MESSAGE PROCESSING
+    // ==================
 
     public void processMessages() {
         while (true) {
@@ -72,11 +115,8 @@ public class ActorHandle {
         }
     }
 
-    public void close() {
-        LOG.debug("Closing actor: {}", this);
-        closed.set(true);
-        system.scheduleActorProcessing(this);
-    }
+    // UTILITY
+    // =======
 
     @Override
     public String toString() {
