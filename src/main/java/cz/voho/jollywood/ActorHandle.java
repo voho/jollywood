@@ -55,7 +55,7 @@ public class ActorHandle {
 
     public void closeActor() {
         closed.set(true);
-        system.scheduleActorProcessingOnce(this);
+        system.scheduleActorProcessing(this);
     }
 
     // MESSAGE PASSING
@@ -67,7 +67,7 @@ public class ActorHandle {
 
     public void sendMessage(final Message message) {
         mailbox.add(message);
-        system.scheduleActorProcessingOnce(this);
+        system.scheduleActorProcessing(this);
     }
 
     public void broadcastMessage(final ActorHandle sender, final MessageContent messageBody) {
@@ -90,7 +90,7 @@ public class ActorHandle {
                 Thread.yield();
             } else {
                 if (closed.get()) {
-                    system.shutdownActor(this);
+                    system.undefineActor(this);
                 }
 
                 break;

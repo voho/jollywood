@@ -42,7 +42,7 @@ public class ActorSystem {
         return newHandle;
     }
 
-    public void shutdownActor(final ActorHandle actor) {
+    public void undefineActor(final ActorHandle actor) {
         LOG.debug("Undefining actor {}.", actor);
         final boolean lastActorRemoved;
         synchronized (actors) {
@@ -67,7 +67,7 @@ public class ActorSystem {
         }
     }
 
-    public void scheduleActorProcessingOnce(final ActorHandle actor) {
+    public void scheduleActorProcessing(final ActorHandle actor) {
         synchronized (processingSet) {
             if (!processingSet.contains(actor)) {
                 processingSet.add(actor);

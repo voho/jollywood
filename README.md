@@ -76,3 +76,7 @@ Also you might reply to an original message sender like this:
 You can also broadcast message to all actors in a certain system:
 
     system.broadcastMessage(self, new MessageContent("invitation", "Let us go for a beer!"));
+
+## High-level architecture
+
+![architecture](http://www.plantuml.com/plantuml/png/RKz13e903BplAoOSIVRW1qoC7hnuyWKh56nSMiDMbD_B4c8muT9sffrEcnuipz273id6I5FikR9N5zsXCkslOpBgKEmAgFSeoW8pVmvIHtAh6hxMj_WzBe7ZJJ-RlPaxKSF2nYfkcONFEaefjEIMF7kMsNFA2tTKCH9pJjG8aHg3Ddy70I4ZH1vOMh0W8Cq_E98QMRUbNfq4r1bGMZRTw1u6rlwd_m80)
