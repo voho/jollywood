@@ -10,6 +10,7 @@ public interface ActorDefinition {
      *
      * @param self current actor handle to perform various reaction tasks
      * @param message message received (contains sender)
+     * @throws Exception any error during processing message
      */
-    void processMessage(ActorHandle self, Message message);
+    void processMessage(ActorHandle self, Message message) throws Exception;
 }

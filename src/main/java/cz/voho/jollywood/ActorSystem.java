@@ -2,9 +2,7 @@ package cz.voho.jollywood;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -15,27 +13,23 @@ public class ActorSystem {
     private static final int INITIAL_ACTOR_CAPACITY = 100;
     private static Logger LOG = LoggerFactory.getLogger(ActorSystem.class);
     private final Collection<ActorHandle> actors;
-    private final Set<ActorHandle> processingSet;
     private final ExecutorService executorService;
-    private final Object lastActorClosedMonitor = new Object();
 
     public ActorSystem(final int numThreads) {
         LOG.debug("Creating actor system with {} thread(s).", numThreads);
         actors = Collections.synchronizedCollection(new LinkedHashSet<>(INITIAL_ACTOR_CAPACITY));
-        processingSet = new HashSet<>();
         executorService = numThreads == 1
                 ? Executors.newSingleThreadExecutor()
                 : Executors.newFixedThreadPool(numThreads);
     }
 
     public ActorHandle getAnonymous() {
-        return new ActorHandle(this, "nobody", (a, b) -> {
-        });
+        return null;
     }
 
-    public ActorHandle defineActor(final String name, final ActorDefinition definition) {
-        LOG.debug("Defining actor {}: {}", name, definition);
-        final ActorHandle newHandle = new ActorHandle(this, name, definition);
+    public ActorHandle defineActor(final ActorDefinition definition) {
+        LOG.debug("Defining actor: {}", definition);
+        final ActorHandle newHandle = new ActorHandle(this, definition);
         synchronized (actors) {
             actors.add(newHandle);
         }
@@ -44,16 +38,12 @@ public class ActorSystem {
 
     public void undefineActor(final ActorHandle actor) {
         LOG.debug("Undefining actor {}.", actor);
-        final boolean lastActorRemoved;
+
         synchronized (actors) {
-            assert actors.contains(actor);
-            actors.remove(actor);
-            lastActorRemoved = actors.isEmpty();
-        }
-        if (lastActorRemoved) {
-            synchronized (lastActorClosedMonitor) {
-                lastActorClosedMonitor.notifyAll();
+            if (!actors.contains(actor)) {
+                throw new IllegalArgumentException("Given actor does not belong here.");
             }
+            actors.remove(actor);
         }
     }
 
@@ -68,42 +58,32 @@ public class ActorSystem {
     }
 
     public void scheduleActorProcessing(final ActorHandle actor) {
-        synchronized (processingSet) {
-            if (!processingSet.contains(actor)) {
-                processingSet.add(actor);
-                LOG.debug("Scheduling actor processing: {}", actor);
-                executorService.submit(() -> {
-                    actor.processMessages();
-
-                    synchronized (processingSet) {
-                        processingSet.remove(actor);
-                    }
-                });
+        synchronized (actors) {
+            if (!actors.contains(actor)) {
+                throw new IllegalArgumentException("Given actor does not belong here.");
             }
         }
-    }
 
-    public void closeActors() throws InterruptedException {
-        LOG.debug("Closing all actors.");
-
-        synchronized (actors) {
-            actors.forEach(ActorHandle::closeActor);
-        }
-
-        synchronized (lastActorClosedMonitor) {
-            lastActorClosedMonitor.wait();
-        }
+        executorService.submit(actor::processMessages);
     }
 
     public void shutdown() throws InterruptedException {
-        LOG.debug("Waiting until all actors are done.");
+        LOG.debug("Waiting for actors to finish...");
 
-        synchronized (lastActorClosedMonitor) {
-            lastActorClosedMonitor.wait();
+        while (true) {
+            synchronized (actors) {
+                if (actors.isEmpty()) {
+                    break;
+                }
+            }
+            // TODO do better way
+            Thread.sleep(100);
         }
 
-        LOG.debug("Shutting down executor service.");
+        LOG.info("All actors are finished.");
 
+        LOG.debug("Shutting down executor service...");
         executorService.shutdown();
+        LOG.info("Shutdown successful.");
     }
 }

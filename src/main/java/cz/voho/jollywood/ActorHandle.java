@@ -1,15 +1,23 @@
 package cz.voho.jollywood;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.UUID;
 
 /**
  * Actor handle for performing actor operations and sending messages.
  */
 public class ActorHandle {
     /**
-     * actor name
+     * actor id
      */
-    private final String name;
+    private final UUID id;
+    /**
+     * mailbox with messages for this actor
+     */
+    private final Mailbox mailbox;
+    /**
+     * mailbox processing lock preventing more threads from processing messages
+     */
+    private final Object mailboxProcessingLock;
     /**
      * parent ctor system
      */
@@ -18,82 +26,71 @@ public class ActorHandle {
      * actor definition
      */
     private final ActorDefinition definition;
-    /**
-     * mailbox with messages for this actor
-     */
-    private final Mailbox mailbox;
-    /**
-     * closed flag
-     */
-    private final AtomicBoolean closed;
 
     /**
      * Creates a new instance.
      *
      * @param system parent actor system to live in
-     * @param name actor name (just for easier debugging, does not have to be unique)
      * @param definition actor definition
      */
-    public ActorHandle(final ActorSystem system, final String name, final ActorDefinition definition) {
+    public ActorHandle(final ActorSystem system, final ActorDefinition definition) {
         this.system = system;
-        this.name = name;
         this.definition = definition;
+        mailboxProcessingLock = new Object();
+        id = UUID.randomUUID();
         mailbox = new Mailbox();
-        closed = new AtomicBoolean(false);
     }
 
     // ACTOR OPERATION
     // ===============
 
     public ActorHandle cloneActor() {
-        return system.defineActor(name + " (clone)", definition);
+        return system.defineActor(definition);
     }
 
-    public ActorHandle createActor(final String name, final ActorDefinition definition) {
-        return system.defineActor(name, definition);
+    public ActorHandle createActor(final ActorDefinition definition) {
+        return system.defineActor(definition);
     }
 
     public void closeActor() {
-        closed.set(true);
-        system.scheduleActorProcessing(this);
+        system.undefineActor(this);
     }
 
     // MESSAGE PASSING
     // ===============
+
+    public ActorSystem getSystem() {
+        return system;
+    }
 
     public void sendMessage(final ActorHandle sender, final MessageContent messageBody) {
         sendMessage(new Message(sender, messageBody));
     }
 
     public void sendMessage(final Message message) {
-        mailbox.add(message);
-        system.scheduleActorProcessing(this);
-    }
-
-    public void broadcastMessage(final ActorHandle sender, final MessageContent messageBody) {
-        broadcastMessage(new Message(sender, messageBody));
-    }
-
-    public void broadcastMessage(final Message message) {
-        system.broadcastMessage(message);
+        System.out.println("sending message " + message);
+        this.mailbox.add(message);
+        this.system.scheduleActorProcessing(this);
     }
 
     // MESSAGE PROCESSING
     // ==================
 
     public void processMessages() {
-        while (true) {
-            final Message message = mailbox.poll();
+        synchronized (mailboxProcessingLock) {
+            while (true) {
+                final Message message = mailbox.poll();
 
-            if (message != null) {
-                definition.processMessage(this, message);
-                Thread.yield();
-            } else {
-                if (closed.get()) {
-                    system.undefineActor(this);
+                if (message != null) {
+                    try {
+                        definition.processMessage(this, message);
+                    } catch (Exception e) {
+                        // TODO
+                    }
+                    Thread.yield();
+                } else {
+                    break;
                 }
-
-                break;
             }
         }
     }
@@ -103,6 +100,6 @@ public class ActorHandle {
 
     @Override
     public String toString() {
-        return String.format("{%s}", name);
+        return String.format("{%s}", id);
     }
 }

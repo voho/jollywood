@@ -43,7 +43,7 @@ public class CounterTest {
             }
         };
 
-        final ActorHandle counterRef = system.defineActor("COUNTER", counterDef);
+        final ActorHandle counterRef = system.defineActor(counterDef);
 
         final ActorDefinition driverDef = (self, message) -> {
             if (message.getSubject().equals("total")) {
@@ -57,7 +57,7 @@ public class CounterTest {
             }
         };
 
-        final ActorHandle driverRef = system.defineActor("DRIVER", driverDef);
+        final ActorHandle driverRef = system.defineActor(driverDef);
 
         driverRef.sendMessage(system.getAnonymous(), new MessageContent("start", null));
 

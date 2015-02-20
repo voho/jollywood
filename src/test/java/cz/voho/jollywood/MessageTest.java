@@ -8,16 +8,16 @@ import org.junit.Test;
 public class MessageTest {
     @Test
     public void testGetters() {
-        ActorHandle sender = new ActorHandle(null, null, null) {
+        final ActorHandle sender = new ActorHandle(null, null) {
             @Override
             public String toString() {
                 return "sender";
             }
         };
 
-        Object subject = Objects.SUBJECT;
-        Object content = Objects.CONTENT;
-        Message message = new Message(sender, new MessageContent(subject, content));
+        final Object subject = Objects.SUBJECT;
+        final Object content = Objects.CONTENT;
+        final Message message = new Message(sender, new MessageContent(subject, content));
         assertSame(sender, message.getSender());
         assertSame(subject, message.getSubject());
         assertSame(content, message.getBody());
