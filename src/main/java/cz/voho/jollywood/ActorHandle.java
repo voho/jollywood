@@ -75,7 +75,6 @@ public class ActorHandle {
     }
 
     public void sendMessage(final Message message) {
-        System.out.println("sending message " + message);
         this.mailbox.add(message);
         this.system.scheduleActorProcessing(this);
     }
