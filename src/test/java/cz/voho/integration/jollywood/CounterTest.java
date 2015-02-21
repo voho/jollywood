@@ -59,7 +59,7 @@ public class CounterTest {
 
         final ActorHandle driverRef = system.defineActor(driverDef);
 
-        driverRef.sendMessage(system.getAnonymous(), new MessageContent("start", null));
+        driverRef.sendMessage(system.getNobody(), new MessageContent("start", null));
 
         system.shutdown();
         return result.get();

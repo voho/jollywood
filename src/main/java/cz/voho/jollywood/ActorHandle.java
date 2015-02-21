@@ -1,6 +1,7 @@
 package cz.voho.jollywood;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Actor handle for performing actor operations and sending messages.
@@ -26,6 +27,10 @@ public class ActorHandle {
      * actor definition
      */
     private final ActorDefinition definition;
+    /**
+     * closed flag
+     */
+    private final AtomicBoolean closed;
 
     /**
      * Creates a new instance.
@@ -39,6 +44,7 @@ public class ActorHandle {
         mailboxProcessingLock = new Object();
         id = UUID.randomUUID();
         mailbox = new Mailbox();
+        closed = new AtomicBoolean(false);
     }
 
     // ACTOR OPERATION
@@ -53,7 +59,8 @@ public class ActorHandle {
     }
 
     public void closeActor() {
-        system.undefineActor(this);
+        closed.set(true);
+        system.scheduleActorProcessing(this);
     }
 
     // MESSAGE PASSING
@@ -89,6 +96,10 @@ public class ActorHandle {
                     }
                     Thread.yield();
                 } else {
+                    if (closed.get()) {
+                        system.undefineActor(this);
+                    }
+
                     break;
                 }
             }

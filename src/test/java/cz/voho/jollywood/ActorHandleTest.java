@@ -3,6 +3,7 @@ package cz.voho.jollywood;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -50,7 +51,7 @@ public class ActorHandleTest {
         actorHandle.closeActor();
 
         verify(actorSystemMock)
-                .undefineActor(eq(actorHandle));
+                .scheduleActorProcessing(eq(actorHandle));
 
         verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock);
     }
@@ -92,7 +93,7 @@ public class ActorHandleTest {
         actorHandle.sendMessage(message);
         actorHandle.processMessages();
 
-        verify(actorSystemMock)
+        verify(actorSystemMock, times(2))
                 .scheduleActorProcessing(eq(actorHandle));
 
         verify(actorSystemMock)

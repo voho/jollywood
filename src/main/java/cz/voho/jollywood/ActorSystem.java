@@ -23,7 +23,7 @@ public class ActorSystem {
                 : Executors.newFixedThreadPool(numThreads);
     }
 
-    public ActorHandle getAnonymous() {
+    public ActorHandle getNobody() {
         return null;
     }
 
@@ -40,10 +40,11 @@ public class ActorSystem {
         LOG.debug("Undefining actor {}.", actor);
 
         synchronized (actors) {
-            if (!actors.contains(actor)) {
+            if (actors.remove(actor)) {
+                actors.notifyAll();
+            } else {
                 throw new IllegalArgumentException("Given actor does not belong here.");
             }
-            actors.remove(actor);
         }
     }
 
@@ -58,26 +59,16 @@ public class ActorSystem {
     }
 
     public void scheduleActorProcessing(final ActorHandle actor) {
-        synchronized (actors) {
-            if (!actors.contains(actor)) {
-                throw new IllegalArgumentException("Given actor does not belong here.");
-            }
-        }
-
         executorService.submit(actor::processMessages);
     }
 
     public void shutdown() throws InterruptedException {
         LOG.debug("Waiting for actors to finish...");
 
-        while (true) {
-            synchronized (actors) {
-                if (actors.isEmpty()) {
-                    break;
-                }
+        synchronized (actors) {
+            while (!actors.isEmpty()) {
+                actors.wait();
             }
-            // TODO do better way
-            Thread.sleep(100);
         }
 
         LOG.info("All actors are finished.");

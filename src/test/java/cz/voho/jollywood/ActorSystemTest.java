@@ -1,8 +1,9 @@
 package cz.voho.jollywood;
 
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import org.junit.Before;
@@ -19,7 +20,7 @@ public class ActorSystemTest {
 
     @Test
     public void testGetAnonymous() throws Exception {
-        ActorHandle actorHandle = actorSystem.getAnonymous();
+        ActorHandle actorHandle = actorSystem.getNobody();
 
         assertNull(actorHandle);
     }
@@ -28,7 +29,7 @@ public class ActorSystemTest {
     public void testDefineActor() throws Exception {
         ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
 
-        ActorHandle actorHandle = actorSystem.defineActor(actorDefinitionMock);
+        actorSystem.defineActor(actorDefinitionMock);
 
         verifyNoMoreInteractions(actorDefinitionMock);
     }
@@ -38,7 +39,6 @@ public class ActorSystemTest {
         ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
 
         ActorHandle actorHandle = actorSystem.defineActor(actorDefinitionMock);
-
         actorSystem.undefineActor(actorHandle);
 
         verifyNoMoreInteractions(actorDefinitionMock);
@@ -46,7 +46,29 @@ public class ActorSystemTest {
 
     @Test
     public void testBroadcastMessage() throws Exception {
+        ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
+        Message messageMock = mock(Message.class);
 
+        ActorHandle actor1 = actorSystem.defineActor(actorDefinitionMock);
+        ActorHandle actor2 = actorSystem.defineActor(actorDefinitionMock);
+        ActorHandle actor3 = actorSystem.defineActor(actorDefinitionMock);
+
+        actorSystem.broadcastMessage(messageMock);
+        actor1.closeActor();
+        actor2.closeActor();
+        actor3.closeActor();
+        actorSystem.shutdown();
+
+        verify(actorDefinitionMock)
+                .processMessage(eq(actor1), eq(messageMock));
+
+        verify(actorDefinitionMock)
+                .processMessage(eq(actor2), eq(messageMock));
+
+        verify(actorDefinitionMock)
+                .processMessage(eq(actor3), eq(messageMock));
+
+        verifyNoMoreInteractions(actorDefinitionMock, messageMock);
     }
 
 
@@ -67,7 +89,7 @@ public class ActorSystemTest {
         ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
 
         actorSystem.defineActor(actorDefinitionMock);
-        //actorSystem.shutdown();
+        actorSystem.shutdown();
 
         verifyNoMoreInteractions(actorDefinitionMock);
     }
