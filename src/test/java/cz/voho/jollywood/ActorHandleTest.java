@@ -1,7 +1,10 @@
 package cz.voho.jollywood;
 
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,20 +26,8 @@ public class ActorHandleTest {
     }
 
     @Test
-    public void testCloneActor() throws Exception {
-        ActorHandle clonedActorHandle = actorHandle.cloneActor();
-
-        assertNotEquals(clonedActorHandle, actorHandle);
-
-        verify(actorSystemMock)
-                .defineActor(eq(actorDefinitionMock));
-
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock);
-    }
-
-    @Test
     public void testCreateActor() throws Exception {
-        ActorHandle createdActorHandle = actorHandle.createActor(actorDefinitionMock);
+        ActorHandle createdActorHandle = actorHandle.getSystem().defineActor(actorDefinitionMock);
 
         assertNotEquals(createdActorHandle, actorHandle);
 
@@ -58,39 +49,38 @@ public class ActorHandleTest {
 
     @Test
     public void testSendMessage() throws Exception {
-        ActorHandle senderMock = mock(ActorHandle.class);
-        MessageContent messageContent = mock(MessageContent.class);
+        Message messageMock = mock(Message.class);
 
-        actorHandle.sendMessage(senderMock, messageContent);
+        actorHandle.sendMessage(messageMock);
 
         verify(actorSystemMock)
                 .scheduleActorProcessing(eq(actorHandle));
 
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, senderMock, messageContent);
+        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, messageMock);
     }
 
     @Test
     public void testProcessMessages() throws Exception {
-        Message message = mock(Message.class);
+        Message messageMock = mock(Message.class);
 
-        actorHandle.sendMessage(message);
+        actorHandle.sendMessage(messageMock);
         actorHandle.processMessages();
 
         verify(actorDefinitionMock)
-                .processMessage(eq(actorHandle), eq(message));
+                .processMessage(eq(actorHandle), eq(messageMock));
 
         verify(actorSystemMock)
                 .scheduleActorProcessing(eq(actorHandle));
 
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, message);
+        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, messageMock);
     }
 
     @Test
     public void testProcessMessagesAfterClose() throws Exception {
-        Message message = mock(Message.class);
+        Message messageMock = mock(Message.class);
 
         actorHandle.closeActor();
-        actorHandle.sendMessage(message);
+        actorHandle.sendMessage(messageMock);
         actorHandle.processMessages();
 
         verify(actorSystemMock, times(2))
@@ -100,8 +90,33 @@ public class ActorHandleTest {
                 .undefineActor(eq(actorHandle));
 
         verify(actorDefinitionMock)
-                .processMessage(eq(actorHandle), eq(message));
+                .processMessage(eq(actorHandle), eq(messageMock));
 
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, message);
+        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, messageMock);
+    }
+
+    @Test
+    public void testProcessMessagesWithError() throws Exception {
+        doThrow(new IllegalStateException("testing error"))
+                .when(actorDefinitionMock)
+                .processMessage(any(ActorHandle.class), any(Message.class));
+
+        Message messageMock = mock(Message.class);
+
+        actorHandle.sendMessage(messageMock);
+        actorHandle.processMessages();
+
+        verify(actorSystemMock)
+                .scheduleActorProcessing(eq(actorHandle));
+
+        verify(actorDefinitionMock)
+                .processMessage(eq(actorHandle), eq(messageMock));
+
+        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, messageMock);
+    }
+
+    @Test
+    public void testToString() {
+        assertTrue(actorHandle.toString().matches("\\{[a-zA-Z0-9\\-]{36}\\}"));
     }
 }

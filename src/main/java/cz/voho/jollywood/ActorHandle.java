@@ -3,10 +3,15 @@ package cz.voho.jollywood;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Actor handle for performing actor operations and sending messages.
  */
 public class ActorHandle {
+    private static Logger LOG = LoggerFactory.getLogger(ActorHandle.class);
+
     /**
      * actor id
      */
@@ -30,7 +35,7 @@ public class ActorHandle {
     /**
      * closed flag
      */
-    private final AtomicBoolean closed;
+    private final AtomicBoolean closeOnNoMoreMessages;
 
     /**
      * Creates a new instance.
@@ -44,22 +49,14 @@ public class ActorHandle {
         mailboxProcessingLock = new Object();
         id = UUID.randomUUID();
         mailbox = new Mailbox();
-        closed = new AtomicBoolean(false);
+        closeOnNoMoreMessages = new AtomicBoolean(false);
     }
 
     // ACTOR OPERATION
     // ===============
 
-    public ActorHandle cloneActor() {
-        return system.defineActor(definition);
-    }
-
-    public ActorHandle createActor(final ActorDefinition definition) {
-        return system.defineActor(definition);
-    }
-
     public void closeActor() {
-        closed.set(true);
+        closeOnNoMoreMessages.set(true);
         system.scheduleActorProcessing(this);
     }
 
@@ -70,13 +67,13 @@ public class ActorHandle {
         return system;
     }
 
-    public void sendMessage(final ActorHandle sender, final MessageContent messageBody) {
-        sendMessage(new Message(sender, messageBody));
+    public void sendMessage(final ActorHandle sender, final Object subject, final Object body) {
+        sendMessage(new Message(sender, subject, body));
     }
 
     public void sendMessage(final Message message) {
-        this.mailbox.add(message);
-        this.system.scheduleActorProcessing(this);
+        mailbox.add(message);
+        system.scheduleActorProcessing(this);
     }
 
     // MESSAGE PROCESSING
@@ -91,11 +88,13 @@ public class ActorHandle {
                     try {
                         definition.processMessage(this, message);
                     } catch (Exception e) {
-                        // TODO
+                        LOG.error("Error while processing message: " + message, e);
+                    } finally {
+                        Thread.yield();
                     }
-                    Thread.yield();
                 } else {
-                    if (closed.get()) {
+                    if (closeOnNoMoreMessages.get()) {
+                        LOG.debug("Last message processed - closing actor.");
                         system.undefineActor(this);
                     }
 

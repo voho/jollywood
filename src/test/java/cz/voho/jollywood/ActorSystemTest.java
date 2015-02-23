@@ -1,5 +1,6 @@
 package cz.voho.jollywood;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -7,8 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public class ActorSystemTest {
     private ActorSystem actorSystem;
@@ -45,19 +46,17 @@ public class ActorSystemTest {
     }
 
     @Test
-    public void testBroadcastMessage() throws Exception {
+    public void testBroadcastMessage_direct() throws Exception {
         ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
         Message messageMock = mock(Message.class);
 
         ActorHandle actor1 = actorSystem.defineActor(actorDefinitionMock);
         ActorHandle actor2 = actorSystem.defineActor(actorDefinitionMock);
-        ActorHandle actor3 = actorSystem.defineActor(actorDefinitionMock);
 
         actorSystem.broadcastMessage(messageMock);
         actor1.closeActor();
         actor2.closeActor();
-        actor3.closeActor();
-        actorSystem.shutdown();
+        actorSystem.shutdownAfterActorsClosed();
 
         verify(actorDefinitionMock)
                 .processMessage(eq(actor1), eq(messageMock));
@@ -65,31 +64,59 @@ public class ActorSystemTest {
         verify(actorDefinitionMock)
                 .processMessage(eq(actor2), eq(messageMock));
 
-        verify(actorDefinitionMock)
-                .processMessage(eq(actor3), eq(messageMock));
-
         verifyNoMoreInteractions(actorDefinitionMock, messageMock);
     }
 
-
     @Test
-    public void testScheduleActorProcessing() throws Exception {
+    public void testBroadcastMessage_indirect() throws Exception {
+        ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
+        ActorHandle mockSender = mock(ActorHandle.class);
+        Object mockSubject = mock(Object.class);
+        Object mockBody = mock(Object.class);
 
+        ActorHandle actor1 = actorSystem.defineActor(actorDefinitionMock);
+        ActorHandle actor2 = actorSystem.defineActor(actorDefinitionMock);
+
+        actorSystem.broadcastMessage(mockSender, mockSubject, mockBody);
+        actor1.closeActor();
+        actor2.closeActor();
+        actorSystem.shutdownAfterActorsClosed();
+
+        ArgumentCaptor<Message> messageCaptor1 = ArgumentCaptor.forClass(Message.class);
+        ArgumentCaptor<Message> messageCaptor2 = ArgumentCaptor.forClass(Message.class);
+
+        verify(actorDefinitionMock)
+                .processMessage(eq(actor1), messageCaptor1.capture());
+
+        verify(actorDefinitionMock)
+                .processMessage(eq(actor2), messageCaptor2.capture());
+
+        Message message1 = messageCaptor1.getValue();
+        Message message2 = messageCaptor2.getValue();
+
+        assertEquals(message1, message2);
+        assertEquals(mockSender, message1.getSender());
+        assertEquals(mockSubject, message1.getSubject());
+        assertEquals(mockBody, message1.getBody());
+        assertEquals(mockSender, message2.getSender());
+        assertEquals(mockSubject, message2.getSubject());
+        assertEquals(mockBody, message2.getBody());
+
+        verifyNoMoreInteractions(actorDefinitionMock, mockSender, mockSubject, mockBody);
     }
-
 
     @Test
     public void testShutdownEmptySystem() throws Exception {
-        actorSystem.shutdown();
+        actorSystem.shutdownAfterActorsClosed();
     }
 
     @Test
-    @Ignore
     public void testShutdownNonEmptySystem() throws Exception {
         ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
 
         actorSystem.defineActor(actorDefinitionMock);
-        actorSystem.shutdown();
+        actorSystem.closeAllActors();
+        actorSystem.shutdownAfterActorsClosed();
 
         verifyNoMoreInteractions(actorDefinitionMock);
     }

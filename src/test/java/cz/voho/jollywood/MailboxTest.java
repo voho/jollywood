@@ -62,6 +62,6 @@ public class MailboxTest {
     }
 
     private static Message createTestMessage() {
-        return new Message(null, null);
+        return new Message(null, null, null);
     }
 }

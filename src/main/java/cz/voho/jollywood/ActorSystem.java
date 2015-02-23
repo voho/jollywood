@@ -16,7 +16,7 @@ public class ActorSystem {
     private final ExecutorService executorService;
 
     public ActorSystem(final int numThreads) {
-        LOG.debug("Creating actor system with {} thread(s).", numThreads);
+        LOG.info("Creating actor system with {} thread(s).", numThreads);
         actors = Collections.synchronizedCollection(new LinkedHashSet<>(INITIAL_ACTOR_CAPACITY));
         executorService = numThreads == 1
                 ? Executors.newSingleThreadExecutor()
@@ -48,8 +48,8 @@ public class ActorSystem {
         }
     }
 
-    public void broadcastMessage(final ActorHandle sender, final MessageContent message) {
-        broadcastMessage(new Message(sender, message));
+    public void broadcastMessage(final ActorHandle sender, final Object subject, final Object body) {
+        broadcastMessage(new Message(sender, subject, body));
     }
 
     public void broadcastMessage(final Message message) {
@@ -62,19 +62,26 @@ public class ActorSystem {
         executorService.submit(actor::processMessages);
     }
 
-    public void shutdown() throws InterruptedException {
+    public void closeAllActors() {
+        synchronized (actors) {
+            actors.forEach(ActorHandle::closeActor);
+        }
+    }
+
+    public void shutdownAfterActorsClosed() throws InterruptedException {
         LOG.debug("Waiting for actors to finish...");
 
         synchronized (actors) {
             while (!actors.isEmpty()) {
+                LOG.info("Waiting because there are {} more opened actor(s).", actors.size());
                 actors.wait();
             }
         }
 
-        LOG.info("All actors are finished.");
+        LOG.debug("All actors are finished.");
 
         LOG.debug("Shutting down executor service...");
         executorService.shutdown();
-        LOG.info("Shutdown successful.");
+        LOG.info("Actor system shutdown successful.");
     }
 }

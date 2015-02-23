@@ -10,7 +10,6 @@ import cz.voho.jollywood.ActorDefinition;
 import cz.voho.jollywood.ActorHandle;
 import cz.voho.jollywood.ActorSystem;
 import cz.voho.jollywood.Message;
-import cz.voho.jollywood.MessageContent;
 
 public class CounterTest {
     private static final int NUM_EXPERIMENTS = 100;
@@ -34,10 +33,10 @@ public class CounterTest {
 
             @Override
             public void processMessage(final ActorHandle self, final Message message) {
-                if (message.getSubject().equals("increment")) {
+                if (message.hasSubjectEqualTo("increment")) {
                     counter++;
-                } else if (message.getSubject().equals("total")) {
-                    message.getSender().sendMessage(self, new MessageContent("total", counter));
+                } else if (message.hasSubjectEqualTo("total")) {
+                    message.getSender().sendMessage(self, "total", counter);
                     self.closeActor();
                 }
             }
@@ -46,22 +45,22 @@ public class CounterTest {
         final ActorHandle counterRef = system.defineActor(counterDef);
 
         final ActorDefinition driverDef = (self, message) -> {
-            if (message.getSubject().equals("total")) {
+            if (message.hasSubjectEqualTo("total")) {
                 result.set((Integer) message.getBody());
                 self.closeActor();
-            } else if (message.getSubject().equals("start")) {
+            } else if (message.hasSubjectEqualTo("start")) {
                 for (int i = 0; i < COUNTER_TARGET; i++) {
-                    counterRef.sendMessage(self, new MessageContent("increment", null));
+                    counterRef.sendMessage(self, "increment", null);
                 }
-                counterRef.sendMessage(self, new MessageContent("total", null));
+                counterRef.sendMessage(self, "total", null);
             }
         };
 
         final ActorHandle driverRef = system.defineActor(driverDef);
 
-        driverRef.sendMessage(system.getNobody(), new MessageContent("start", null));
+        driverRef.sendMessage(system.getNobody(), "start", null);
 
-        system.shutdown();
+        system.shutdownAfterActorsClosed();
         return result.get();
     }
 }

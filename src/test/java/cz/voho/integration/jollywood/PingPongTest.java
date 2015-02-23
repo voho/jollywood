@@ -10,11 +10,10 @@ import cz.voho.jollywood.ActorDefinition;
 import cz.voho.jollywood.ActorHandle;
 import cz.voho.jollywood.ActorSystem;
 import cz.voho.jollywood.Message;
-import cz.voho.jollywood.MessageContent;
 
 public class PingPongTest {
     private static final int NUM_EXPERIMENTS = 10;
-    private static final int NUM_THREADS = 20;
+    private static final int NUM_THREADS = 4;
     private static final int NUM_PINGS = 10;
 
     @Test
@@ -30,43 +29,31 @@ public class PingPongTest {
         final AtomicInteger pings = new AtomicInteger();
 
         final ActorDefinition playerDef = new ActorDefinition() {
-            private int counter = 0;
+            private AtomicInteger counter = new AtomicInteger(0);
 
             @Override
             public void processMessage(final ActorHandle self, final Message message) {
-                if (message.getSubject().equals("ping")) {
-                    System.out.println("PING");
-                    counter++;
-                    MessageContent msg = new MessageContent("pong", null);
-                    message.getSender().sendMessage(self, msg);
-                } else if (message.getSubject().equals("pong")) {
-                    System.out.println("PONG");
-                    counter++;
-                    MessageContent msg = new MessageContent("ping", null);
-                    message.getSender().sendMessage(self, msg);
-                }
-
-                if (counter == NUM_PINGS) {
-                    pings.set(counter);
-                    self.closeActor();
-                    synchronized (pings) {
-                        pings.notifyAll();
+                if (counter.incrementAndGet() == NUM_PINGS) {
+                    pings.set(counter.get());
+                    self.getSystem().closeAllActors();
+                } else {
+                    if (message.hasSubjectEqualTo("ping")) {
+                        System.out.println("PING");
+                        message.getSender().sendMessage(self, "pong", null);
+                    } else if (message.hasSubjectEqualTo("pong")) {
+                        System.out.println("PONG");
+                        message.getSender().sendMessage(self, "ping", null);
                     }
                 }
             }
         };
 
-        ActorHandle pingDef = system.defineActor(playerDef);
-        ActorHandle pongDef = system.defineActor(playerDef);
+        ActorHandle pingRef = system.defineActor(playerDef);
+        ActorHandle pongRef = system.defineActor(playerDef);
 
-        pingDef.sendMessage(pongDef, new MessageContent("ping", null));
+        pingRef.sendMessage(pongRef, "ping", null);
 
-       // system.shutdown();
-        synchronized (pings) {
-            pings.wait();
-        }
+        system.shutdownAfterActorsClosed();
         return pings.get();
     }
-
-
 }
