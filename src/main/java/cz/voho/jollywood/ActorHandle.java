@@ -8,9 +8,14 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Actor handle for performing actor operations and sending messages.
+ *
+ * @author Vojtěch Hordějčuk
  */
 public class ActorHandle {
-    private static Logger LOG = LoggerFactory.getLogger(ActorHandle.class);
+    /**
+     * logger
+     */
+    private static final Logger LOG = LoggerFactory.getLogger(ActorHandle.class);
 
     /**
      * actor id
@@ -25,7 +30,7 @@ public class ActorHandle {
      */
     private final Object mailboxProcessingLock;
     /**
-     * parent ctor system
+     * parent actor system
      */
     private final ActorSystem system;
     /**
@@ -55,6 +60,19 @@ public class ActorHandle {
     // ACTOR OPERATION
     // ===============
 
+    /**
+     * Returns the parent actor system.
+     *
+     * @return parent actor system
+     */
+    public ActorSystem getSystem() {
+        return system;
+    }
+
+    /**
+     * Closes this actor at some point in the future.
+     * Closing is performed only after all messages in its queue are processed.
+     */
     public void closeActor() {
         closeOnNoMoreMessages.set(true);
         system.scheduleActorProcessing(this);
@@ -63,14 +81,22 @@ public class ActorHandle {
     // MESSAGE PASSING
     // ===============
 
-    public ActorSystem getSystem() {
-        return system;
-    }
-
+    /**
+     * Sends a message to this specific actor.
+     *
+     * @param sender sender actor
+     * @param subject message subject
+     * @param body message body
+     */
     public void sendMessage(final ActorHandle sender, final Object subject, final Object body) {
         sendMessage(new Message(sender, subject, body));
     }
 
+    /**
+     * Sends a message to this specific actor.
+     *
+     * @param message message
+     */
     public void sendMessage(final Message message) {
         mailbox.add(message);
         system.scheduleActorProcessing(this);
@@ -79,6 +105,10 @@ public class ActorHandle {
     // MESSAGE PROCESSING
     // ==================
 
+    /**
+     * Processes all messages present in the queue.
+     * Only one thread is allowed to process the queue, which is guaranteed in here.
+     */
     public void processMessages() {
         synchronized (mailboxProcessingLock) {
             while (true) {

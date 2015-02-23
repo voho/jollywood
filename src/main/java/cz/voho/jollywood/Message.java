@@ -2,6 +2,8 @@ package cz.voho.jollywood;
 
 /**
  * Object representing a single message.
+ *
+ * @author Vojtěch Hordějčuk
  */
 public class Message {
     /**

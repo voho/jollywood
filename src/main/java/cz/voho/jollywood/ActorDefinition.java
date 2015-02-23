@@ -2,6 +2,8 @@ package cz.voho.jollywood;
 
 /**
  * Actor definition specifies an actor reaction on different messages.
+ *
+ * @author Vojtěch Hordějčuk
  */
 @FunctionalInterface
 public interface ActorDefinition {

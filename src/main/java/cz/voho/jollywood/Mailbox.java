@@ -2,6 +2,9 @@ package cz.voho.jollywood;
 
 /**
  * Mailbox is an unlimited queue of messages belonging to an actor.
+ * Queue is implemented as a linked list so there is no hard limitation of the message count.
+ *
+ * @author Vojtěch Hordějčuk
  */
 public class Mailbox {
     /**
