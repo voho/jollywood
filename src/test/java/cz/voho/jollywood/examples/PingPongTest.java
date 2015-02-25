@@ -37,10 +37,10 @@ public class PingPongTest {
                     pings.set(counter.get());
                     self.getSystem().closeAllActors();
                 } else {
-                    if (message.hasSubjectEqualTo("ping")) {
+                    if (message.subjectEquals("ping")) {
                         System.out.println("PING");
                         message.getSender().sendMessage(self, "pong", null);
-                    } else if (message.hasSubjectEqualTo("pong")) {
+                    } else if (message.subjectEquals("pong")) {
                         System.out.println("PONG");
                         message.getSender().sendMessage(self, "ping", null);
                     }

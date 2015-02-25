@@ -33,9 +33,9 @@ public class CounterTest {
 
             @Override
             public void processMessage(final ActorHandle self, final Message message) {
-                if (message.hasSubjectEqualTo("increment")) {
+                if (message.subjectEquals("increment")) {
                     counter++;
-                } else if (message.hasSubjectEqualTo("total")) {
+                } else if (message.subjectEquals("total")) {
                     message.getSender().sendMessage(self, "total", counter);
                     self.closeActor();
                 }
@@ -45,10 +45,10 @@ public class CounterTest {
         final ActorHandle counterRef = system.defineActor(counterDef);
 
         final ActorDefinition driverDef = (self, message) -> {
-            if (message.hasSubjectEqualTo("total")) {
+            if (message.subjectEquals("total")) {
                 result.set((Integer) message.getBody());
                 self.closeActor();
-            } else if (message.hasSubjectEqualTo("start")) {
+            } else if (message.subjectEquals("start")) {
                 for (int i = 0; i < COUNTER_TARGET; i++) {
                     counterRef.sendMessage(self, "increment", null);
                 }

@@ -138,7 +138,7 @@ public class ActorSystem {
 
         synchronized (actors) {
             while (!actors.isEmpty()) {
-                LOG.info("Waiting because there are {} more opened actor(s).", actors.size());
+                LOG.debug("Waiting because there are {} more opened actor(s).", actors.size());
                 actors.wait();
             }
         }

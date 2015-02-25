@@ -28,7 +28,7 @@ public class RockPaperScissorsTest {
         ActorDefinition player = new ActorDefinition() {
             @Override
             public void processMessage(ActorHandle self, Message message) throws Exception {
-                if (message.hasSubjectEqualTo("choose")) {
+                if (message.subjectEquals("choose")) {
                     message.getSender().sendMessage(self, "choice", Choice.random());
                 }
             }
@@ -43,23 +43,25 @@ public class RockPaperScissorsTest {
 
             @Override
             public void processMessage(ActorHandle self, Message message) throws Exception {
-                if (message.hasSubjectEqualTo("play")) {
+                if (message.subjectEquals("play")) {
                     player1Ref.sendMessage(self, "choose", null);
                     player2Ref.sendMessage(self, "choose", null);
-                } else if (message.hasSubjectEqualTo("choice")) {
-                    if (message.getSender() == player1Ref) {
+                } else if (message.subjectEquals("choice")) {
+                    if (message.senderEquals(player1Ref)) {
                         player1Choice = (Choice) message.getBody();
-                    } else if (message.getSender() == player2Ref) {
+                    } else if (message.senderEquals(player2Ref)) {
                         player2Choice = (Choice) message.getBody();
+                    } else {
+                        throw new IllegalStateException("Unknown player.");
                     }
 
                     if (player1Choice != null && player2Choice != null) {
-                        if (player1Choice == player2Choice) {
-                            draws.incrementAndGet();
-                        } else if (player1Choice.beats(player2Choice)) {
+                        if (player1Choice.beats(player2Choice)) {
                             winsOfPlayer1.incrementAndGet();
-                        } else {
+                        } else if (player2Choice.beats(player1Choice)) {
                             winsOfPlayer2.incrementAndGet();
+                        } else {
+                            draws.incrementAndGet();
                         }
 
                         if (games.incrementAndGet() < NUM_GAMES) {

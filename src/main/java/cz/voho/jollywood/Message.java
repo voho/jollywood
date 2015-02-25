@@ -84,12 +84,27 @@ public class Message {
      * @param otherSubject other subject
      * @return TRUE if the subjects equal, FALSE otherwise
      */
-    public boolean hasSubjectEqualTo(final Object otherSubject) {
+    public boolean subjectEquals(final Object otherSubject) {
         if (subject == null) {
             return otherSubject == null;
         }
 
         return subject.equals(otherSubject);
+    }
+
+    /**
+     * Checks if this message has a sender equal to the given one.
+     * If both senders are NULL, they are considered equal.
+     *
+     * @param otherActor other actor
+     * @return TRUE if the actors equal, FALSE otherwise
+     */
+    public boolean senderEquals(final ActorHandle otherActor) {
+        if (sender == null) {
+            return otherActor == null;
+        }
+
+        return sender.equals(otherActor);
     }
 
     @Override

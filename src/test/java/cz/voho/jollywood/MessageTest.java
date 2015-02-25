@@ -18,9 +18,10 @@ public class MessageTest {
     private Message message_Subject_NoBody;
     private Message message_NoSubject_Body;
     private Message message_Subject_Body;
+    private Message message_NoSender;
 
     @Before
-    public void initialize() {
+    public void prepare() {
         mockSender = mock(ActorHandle.class);
         mockSubject = mock(Object.class);
         mockBody = mock(Object.class);
@@ -28,6 +29,7 @@ public class MessageTest {
         message_Subject_NoBody = new Message(mockSender, mockSubject, null);
         message_NoSubject_Body = new Message(mockSender, null, mockBody);
         message_Subject_Body = new Message(mockSender, mockSubject, mockBody);
+        message_NoSender = new Message(null, null, null);
 
         doReturn("sender").when(mockSender).toString();
         doReturn("subject").when(mockSubject).toString();
@@ -70,17 +72,35 @@ public class MessageTest {
 
     @Test
     public void testSubjectMatch() {
-        assertFalse(message_NoSubject_NoBody.hasSubjectEqualTo(mockSubject));
-        assertTrue(message_NoSubject_NoBody.hasSubjectEqualTo(null));
+        assertFalse(message_NoSubject_NoBody.subjectEquals(mockSubject));
+        assertTrue(message_NoSubject_NoBody.subjectEquals(null));
 
-        assertTrue(message_Subject_NoBody.hasSubjectEqualTo(mockSubject));
-        assertFalse(message_Subject_NoBody.hasSubjectEqualTo(null));
+        assertTrue(message_Subject_NoBody.subjectEquals(mockSubject));
+        assertFalse(message_Subject_NoBody.subjectEquals(null));
 
-        assertFalse(message_NoSubject_Body.hasSubjectEqualTo(mockSubject));
-        assertTrue(message_NoSubject_Body.hasSubjectEqualTo(null));
+        assertFalse(message_NoSubject_Body.subjectEquals(mockSubject));
+        assertTrue(message_NoSubject_Body.subjectEquals(null));
 
-        assertTrue(message_Subject_Body.hasSubjectEqualTo(mockSubject));
-        assertFalse(message_Subject_Body.hasSubjectEqualTo(null));
+        assertTrue(message_Subject_Body.subjectEquals(mockSubject));
+        assertFalse(message_Subject_Body.subjectEquals(null));
+    }
+
+    @Test
+    public void testSenderMatch() {
+        assertTrue(message_NoSubject_NoBody.senderEquals(mockSender));
+        assertFalse(message_NoSubject_NoBody.senderEquals(null));
+
+        assertTrue(message_Subject_NoBody.senderEquals(mockSender));
+        assertFalse(message_Subject_NoBody.senderEquals(null));
+
+        assertTrue(message_NoSubject_Body.senderEquals(mockSender));
+        assertFalse(message_NoSubject_Body.senderEquals(null));
+
+        assertTrue(message_Subject_Body.senderEquals(mockSender));
+        assertFalse(message_Subject_Body.senderEquals(null));
+
+        assertFalse(message_NoSender.senderEquals(mockSender));
+        assertTrue(message_NoSender.senderEquals(null));
     }
 
     @Test
@@ -89,5 +109,6 @@ public class MessageTest {
         assertEquals("sender --> [subject] null", message_Subject_NoBody.toString());
         assertEquals("sender --> [null] body", message_NoSubject_Body.toString());
         assertEquals("sender --> [subject] body", message_Subject_Body.toString());
+        assertEquals("null --> [null] null", message_NoSender.toString());
     }
 }
