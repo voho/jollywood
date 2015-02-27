@@ -2,6 +2,7 @@ package cz.voho.jollywood;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -21,7 +22,7 @@ public class MailboxTest {
 
     @Test
     public void testPollFromSingle() throws Exception {
-        final Message message1 = createTestMessage();
+        final Message message1 = mock(Message.class);
 
         mailbox.add(message1);
 
@@ -31,9 +32,9 @@ public class MailboxTest {
 
     @Test
     public void testPollInCorrectOrder() throws Exception {
-        final Message message1 = createTestMessage();
-        final Message message2 = createTestMessage();
-        final Message message3 = createTestMessage();
+        final Message message1 = mock(Message.class);
+        final Message message2 = mock(Message.class);
+        final Message message3 = mock(Message.class);
 
         mailbox.add(message1);
         mailbox.add(message2);
@@ -48,7 +49,7 @@ public class MailboxTest {
     @Test
     public void testDoNotIgnoreSameMessages() {
         final int count = 100;
-        final Message message = createTestMessage();
+        final Message message = mock(Message.class);
 
         for (long i = 0; i < count; i++) {
             mailbox.add(message);
@@ -59,9 +60,5 @@ public class MailboxTest {
         }
 
         assertNull(mailbox.poll());
-    }
-
-    private static Message createTestMessage() {
-        return new Message(null, null, null);
     }
 }
