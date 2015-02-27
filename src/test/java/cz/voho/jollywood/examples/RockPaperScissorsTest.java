@@ -25,12 +25,9 @@ public class RockPaperScissorsTest {
         final AtomicInteger winsOfPlayer1 = new AtomicInteger(0);
         final AtomicInteger winsOfPlayer2 = new AtomicInteger(0);
 
-        ActorDefinition player = new ActorDefinition() {
-            @Override
-            public void processMessage(ActorHandle self, Message message) throws Exception {
-                if (message.subjectEquals("choose")) {
-                    message.getSender().sendMessage(self, "choice", Choice.random());
-                }
+        ActorDefinition player = (self, message) -> {
+            if (message.subjectEquals("choose")) {
+                message.getSender().sendMessage(self, "choice", Choice.random());
             }
         };
 
