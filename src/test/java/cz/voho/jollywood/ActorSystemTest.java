@@ -27,8 +27,8 @@ public class ActorSystemTest {
     }
 
     @Test
-    public void testDefineActor() throws Exception {
-        ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
+    public void testDefineStatelessActor() throws Exception {
+        StatelessActorDefinition actorDefinitionMock = mock(StatelessActorDefinition.class);
 
         actorSystem.defineActor(actorDefinitionMock);
 
@@ -37,7 +37,7 @@ public class ActorSystemTest {
 
     @Test
     public void testUndefineActor() throws Exception {
-        ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
+        StatelessActorDefinition actorDefinitionMock = mock(StatelessActorDefinition.class);
 
         ActorHandle actorHandle = actorSystem.defineActor(actorDefinitionMock);
         actorSystem.undefineActor(actorHandle);
@@ -47,7 +47,7 @@ public class ActorSystemTest {
 
     @Test
     public void testBroadcastMessage_direct() throws Exception {
-        ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
+        StatelessActorDefinition actorDefinitionMock = mock(StatelessActorDefinition.class);
         Message messageMock = mock(Message.class);
 
         ActorHandle actor1 = actorSystem.defineActor(actorDefinitionMock);
@@ -69,7 +69,7 @@ public class ActorSystemTest {
 
     @Test
     public void testBroadcastMessage_indirect() throws Exception {
-        ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
+        StatelessActorDefinition actorDefinitionMock = mock(StatelessActorDefinition.class);
         ActorHandle mockSender = mock(ActorHandle.class);
         Object mockSubject = mock(Object.class);
         Object mockBody = mock(Object.class);
@@ -112,7 +112,7 @@ public class ActorSystemTest {
 
     @Test
     public void testShutdownNonEmptySystem() throws Exception {
-        ActorDefinition actorDefinitionMock = mock(ActorDefinition.class);
+        StatelessActorDefinition actorDefinitionMock = mock(StatelessActorDefinition.class);
 
         actorSystem.defineActor(actorDefinitionMock);
         actorSystem.closeAllActors();

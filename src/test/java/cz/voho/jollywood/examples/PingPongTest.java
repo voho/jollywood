@@ -6,10 +6,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import cz.voho.jollywood.ActorDefinition;
 import cz.voho.jollywood.ActorHandle;
 import cz.voho.jollywood.ActorSystem;
 import cz.voho.jollywood.Message;
+import cz.voho.jollywood.StatefulActorDefinition;
 
 public class PingPongTest {
     private static final int NUM_EXPERIMENTS = 10;
@@ -28,11 +28,9 @@ public class PingPongTest {
         final ActorSystem system = new ActorSystem(NUM_THREADS);
         final AtomicInteger pings = new AtomicInteger();
 
-        final ActorDefinition playerDef = new ActorDefinition() {
-            private AtomicInteger counter = new AtomicInteger(0);
-
+        final StatefulActorDefinition playerDef = new StatefulActorDefinition<AtomicInteger>() {
             @Override
-            public void processMessage(final ActorHandle self, final Message message) {
+            public void processMessage(final ActorHandle self, final AtomicInteger counter, final Message message) {
                 if (counter.incrementAndGet() == NUM_PINGS) {
                     pings.set(counter.get());
                     self.getSystem().closeAllActors();
@@ -48,8 +46,8 @@ public class PingPongTest {
             }
         };
 
-        ActorHandle pingRef = system.defineActor(playerDef);
-        ActorHandle pongRef = system.defineActor(playerDef);
+        final ActorHandle pingRef = system.defineActor(playerDef, new AtomicInteger(0));
+        final ActorHandle pongRef = system.defineActor(playerDef, new AtomicInteger(0));
 
         pingRef.sendMessage(pongRef, "ping", null);
 

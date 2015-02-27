@@ -6,13 +6,14 @@ package cz.voho.jollywood;
  * @author Vojtěch Hordějčuk
  */
 @FunctionalInterface
-public interface ActorDefinition {
+public interface StatefulActorDefinition<S> {
     /**
      * Method called on each message reception.
      *
      * @param self current actor handle to perform various reaction tasks
+     * @param state current actor handle state
      * @param message message received (contains sender)
      * @throws Exception any error during processing message
      */
-    void processMessage(ActorHandle self, Message message) throws Exception;
+    void processMessage(ActorHandle self, S state, Message message) throws Exception;
 }

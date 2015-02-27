@@ -13,28 +13,33 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ActorHandleTest {
+public class StatelessActorHandleTest {
     private ActorSystem actorSystemMock;
-    private ActorDefinition actorDefinitionMock;
+    private StatelessActorDefinition definition;
     private ActorHandle actorHandle;
 
     @Before
     public void initialize() {
         actorSystemMock = mock(ActorSystem.class);
-        actorDefinitionMock = mock(ActorDefinition.class);
-        actorHandle = new ActorHandle(actorSystemMock, actorDefinitionMock);
+        definition = mock(StatelessActorDefinition.class);
+        actorHandle = new ActorHandle(actorSystemMock) {
+            @Override
+            protected void processMessage(Message message) throws Exception {
+                definition.processMessage(this, message);
+            }
+        };
     }
 
     @Test
     public void testCreateActor() throws Exception {
-        ActorHandle createdActorHandle = actorHandle.getSystem().defineActor(actorDefinitionMock);
+        ActorHandle createdActorHandle = actorHandle.getSystem().defineActor(definition);
 
         assertNotEquals(createdActorHandle, actorHandle);
 
         verify(actorSystemMock)
-                .defineActor(eq(actorDefinitionMock));
+                .defineActor(eq(definition));
 
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock);
+        verifyNoMoreInteractions(actorSystemMock, definition);
     }
 
     @Test
@@ -44,7 +49,7 @@ public class ActorHandleTest {
         verify(actorSystemMock)
                 .scheduleActorProcessing(eq(actorHandle));
 
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock);
+        verifyNoMoreInteractions(actorSystemMock, definition);
     }
 
     @Test
@@ -56,7 +61,7 @@ public class ActorHandleTest {
         verify(actorSystemMock)
                 .scheduleActorProcessing(eq(actorHandle));
 
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, messageMock);
+        verifyNoMoreInteractions(actorSystemMock, definition, messageMock);
     }
 
     @Test
@@ -66,13 +71,13 @@ public class ActorHandleTest {
         actorHandle.sendMessage(messageMock);
         actorHandle.processMessages();
 
-        verify(actorDefinitionMock)
+        verify(definition)
                 .processMessage(eq(actorHandle), eq(messageMock));
 
         verify(actorSystemMock)
                 .scheduleActorProcessing(eq(actorHandle));
 
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, messageMock);
+        verifyNoMoreInteractions(actorSystemMock, definition, messageMock);
     }
 
     @Test
@@ -89,16 +94,16 @@ public class ActorHandleTest {
         verify(actorSystemMock)
                 .undefineActor(eq(actorHandle));
 
-        verify(actorDefinitionMock)
+        verify(definition)
                 .processMessage(eq(actorHandle), eq(messageMock));
 
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, messageMock);
+        verifyNoMoreInteractions(actorSystemMock, definition, messageMock);
     }
 
     @Test
     public void testProcessMessagesWithError() throws Exception {
         doThrow(new IllegalStateException("testing error"))
-                .when(actorDefinitionMock)
+                .when(definition)
                 .processMessage(any(ActorHandle.class), any(Message.class));
 
         Message messageMock = mock(Message.class);
@@ -109,10 +114,10 @@ public class ActorHandleTest {
         verify(actorSystemMock)
                 .scheduleActorProcessing(eq(actorHandle));
 
-        verify(actorDefinitionMock)
+        verify(definition)
                 .processMessage(eq(actorHandle), eq(messageMock));
 
-        verifyNoMoreInteractions(actorSystemMock, actorDefinitionMock, messageMock);
+        verifyNoMoreInteractions(actorSystemMock, definition, messageMock);
     }
 
     @Test

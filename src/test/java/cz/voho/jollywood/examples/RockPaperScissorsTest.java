@@ -7,10 +7,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import cz.voho.jollywood.ActorDefinition;
 import cz.voho.jollywood.ActorHandle;
 import cz.voho.jollywood.ActorSystem;
 import cz.voho.jollywood.Message;
+import cz.voho.jollywood.StatefulActorDefinition;
+import cz.voho.jollywood.StatelessActorDefinition;
 
 public class RockPaperScissorsTest {
     private static final int NUM_THREADS = 10;
@@ -25,7 +26,7 @@ public class RockPaperScissorsTest {
         final AtomicInteger winsOfPlayer1 = new AtomicInteger(0);
         final AtomicInteger winsOfPlayer2 = new AtomicInteger(0);
 
-        ActorDefinition player = (self, message) -> {
+        StatelessActorDefinition player = (self, message) -> {
             if (message.subjectEquals("choose")) {
                 message.getSender().sendMessage(self, "choice", Choice.random());
             }
@@ -34,36 +35,33 @@ public class RockPaperScissorsTest {
         ActorHandle player1Ref = system.defineActor(player);
         ActorHandle player2Ref = system.defineActor(player);
 
-        ActorDefinition arbiter = new ActorDefinition() {
-            private Choice player1Choice;
-            private Choice player2Choice;
-
+        StatefulActorDefinition arbiter = new StatefulActorDefinition<Choices>() {
             @Override
-            public void processMessage(ActorHandle self, Message message) throws Exception {
+            public void processMessage(ActorHandle self, Choices state, Message message) throws Exception {
                 if (message.subjectEquals("play")) {
                     player1Ref.sendMessage(self, "choose", null);
                     player2Ref.sendMessage(self, "choose", null);
                 } else if (message.subjectEquals("choice")) {
                     if (message.senderEquals(player1Ref)) {
-                        player1Choice = (Choice) message.getBody();
+                        state.choiceOfPlayer1 = (Choice) message.getBody();
                     } else if (message.senderEquals(player2Ref)) {
-                        player2Choice = (Choice) message.getBody();
+                        state.choiceOfPlayer2 = (Choice) message.getBody();
                     } else {
                         throw new IllegalStateException("Unknown player.");
                     }
 
-                    if (player1Choice != null && player2Choice != null) {
-                        if (player1Choice.beats(player2Choice)) {
+                    if (state.choiceOfPlayer1 != null && state.choiceOfPlayer2 != null) {
+                        if (state.choiceOfPlayer1.beats(state.choiceOfPlayer2)) {
                             winsOfPlayer1.incrementAndGet();
-                        } else if (player2Choice.beats(player1Choice)) {
+                        } else if (state.choiceOfPlayer2.beats(state.choiceOfPlayer1)) {
                             winsOfPlayer2.incrementAndGet();
                         } else {
                             draws.incrementAndGet();
                         }
 
                         if (games.incrementAndGet() < NUM_GAMES) {
-                            player1Choice = null;
-                            player2Choice = null;
+                            state.choiceOfPlayer1 = null;
+                            state.choiceOfPlayer2 = null;
                             self.sendMessage(self, "play", null);
                         } else {
                             system.closeAllActors();
@@ -73,14 +71,14 @@ public class RockPaperScissorsTest {
             }
         };
 
-        ActorHandle arbiterRef = system.defineActor(arbiter);
+        ActorHandle arbiterRef = system.defineActor(arbiter, new Choices());
         arbiterRef.sendMessage(system.getNobody(), "play", null);
         system.shutdownAfterActorsClosed();
 
         assertEquals(games.get(), winsOfPlayer1.get() + winsOfPlayer2.get() + draws.get());
     }
 
-    private static enum Choice {
+    private enum Choice {
         ROCK {
             @Override
             boolean beats(Choice other) {
@@ -105,5 +103,10 @@ public class RockPaperScissorsTest {
         public static Choice random() {
             return Choice.values()[RANDOM.nextInt(Choice.values().length)];
         }
+    }
+
+    private static class Choices {
+        Choice choiceOfPlayer1;
+        Choice choiceOfPlayer2;
     }
 }

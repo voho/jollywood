@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Vojtěch Hordějčuk
  */
-public class ActorHandle {
+public abstract class ActorHandle {
     /**
      * logger
      */
@@ -34,10 +34,6 @@ public class ActorHandle {
      */
     private final ActorSystem system;
     /**
-     * actor definition
-     */
-    private final ActorDefinition definition;
-    /**
      * closed flag
      */
     private final AtomicBoolean closeOnNoMoreMessages;
@@ -46,11 +42,9 @@ public class ActorHandle {
      * Creates a new instance.
      *
      * @param system parent actor system to live in
-     * @param definition actor definition
      */
-    public ActorHandle(final ActorSystem system, final ActorDefinition definition) {
+    public ActorHandle(final ActorSystem system) {
         this.system = system;
-        this.definition = definition;
         mailboxProcessingLock = new Object();
         id = UUID.randomUUID();
         mailbox = new Mailbox();
@@ -116,7 +110,7 @@ public class ActorHandle {
 
                 if (message != null) {
                     try {
-                        definition.processMessage(this, message);
+                        processMessage(message);
                     } catch (Exception e) {
                         LOG.error("Error while processing message: " + message, e);
                     } finally {
@@ -133,6 +127,8 @@ public class ActorHandle {
             }
         }
     }
+
+    protected abstract void processMessage(Message message) throws Exception;
 
     // UTILITY
     // =======

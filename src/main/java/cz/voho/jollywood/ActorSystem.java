@@ -60,9 +60,32 @@ public class ActorSystem {
      * @param definition actor behavior definition
      * @return newly defined actor handle
      */
-    public ActorHandle defineActor(final ActorDefinition definition) {
-        LOG.debug("Defining actor: {}", definition);
-        final ActorHandle newHandle = new ActorHandle(this, definition);
+    public <S> ActorHandle defineActor(final StatefulActorDefinition<S> definition, final S initialState) {
+        LOG.debug("Defining stateful actor: {}", definition);
+
+        final ActorHandle newHandle = new ActorHandle(this) {
+            @Override
+            protected void processMessage(final Message message) throws Exception {
+                definition.processMessage(this, initialState, message);
+            }
+        };
+
+        synchronized (actors) {
+            actors.add(newHandle);
+        }
+
+        return newHandle;
+    }
+
+    public ActorHandle defineActor(final StatelessActorDefinition definition) {
+        LOG.debug("Defining stateless actor: {}", definition);
+
+        final ActorHandle newHandle = new ActorHandle(this) {
+            @Override
+            protected void processMessage(final Message message) throws Exception {
+                definition.processMessage(this, message);
+            }
+        };
 
         synchronized (actors) {
             actors.add(newHandle);

@@ -1,11 +1,11 @@
 package cz.voho.jollywood.examples;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.Test;
 
-import cz.voho.jollywood.ActorDefinition;
 import cz.voho.jollywood.ActorHandle;
 import cz.voho.jollywood.ActorSystem;
-import cz.voho.jollywood.Message;
 
 public class BarrierTest {
     private static final int NUM_THREADS = 10;
@@ -24,22 +24,15 @@ public class BarrierTest {
             });
         }
 
-        ActorHandle driverRef = system.defineActor(new ActorDefinition() {
-            private int counter;
-
-            @Override
-            public void processMessage(ActorHandle self, Message message) throws Exception {
-                if (message.subjectEquals("ask")) {
-                    self.getSystem().broadcastMessage(self, "question", null);
-                } else if (message.subjectEquals("answer")) {
-                    counter++;
-
-                    if (counter == NUM_RESPONDERS) {
-                        self.closeActor();
-                    }
+        ActorHandle driverRef = system.defineActor((self, counter, message) -> {
+            if (message.subjectEquals("ask")) {
+                self.getSystem().broadcastMessage(self, "question", null);
+            } else if (message.subjectEquals("answer")) {
+                if (counter.incrementAndGet() == NUM_RESPONDERS) {
+                    self.closeActor();
                 }
             }
-        });
+        }, new AtomicInteger(0));
 
         driverRef.sendMessage(system.getNobody(), "ask", null);
         system.shutdownAfterActorsClosed();

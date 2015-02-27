@@ -6,10 +6,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import cz.voho.jollywood.ActorDefinition;
 import cz.voho.jollywood.ActorHandle;
 import cz.voho.jollywood.ActorSystem;
-import cz.voho.jollywood.Message;
+import cz.voho.jollywood.StatefulActorDefinition;
+import cz.voho.jollywood.StatelessActorDefinition;
 
 public class CounterTest {
     private static final int NUM_EXPERIMENTS = 100;
@@ -28,23 +28,18 @@ public class CounterTest {
         final AtomicInteger result = new AtomicInteger();
         final ActorSystem system = new ActorSystem(NUM_THREADS);
 
-        final ActorDefinition counterDef = new ActorDefinition() {
-            private int counter = 0;
-
-            @Override
-            public void processMessage(final ActorHandle self, final Message message) {
-                if (message.subjectEquals("increment")) {
-                    counter++;
-                } else if (message.subjectEquals("total")) {
-                    message.getSender().sendMessage(self, "total", counter);
-                    self.closeActor();
-                }
+        final StatefulActorDefinition<AtomicInteger> counterDef = (self, counter, message) -> {
+            if (message.subjectEquals("increment")) {
+                counter.incrementAndGet();
+            } else if (message.subjectEquals("total")) {
+                message.getSender().sendMessage(self, "total", counter.get());
+                self.closeActor();
             }
         };
 
-        final ActorHandle counterRef = system.defineActor(counterDef);
+        final ActorHandle counterRef = system.defineActor(counterDef, new AtomicInteger(0));
 
-        final ActorDefinition driverDef = (self, message) -> {
+        final StatelessActorDefinition driverDef = (self, message) -> {
             if (message.subjectEquals("total")) {
                 result.set((Integer) message.getBody());
                 self.closeActor();
