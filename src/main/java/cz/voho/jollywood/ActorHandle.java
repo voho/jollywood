@@ -92,8 +92,10 @@ public abstract class ActorHandle {
      * @param message message
      */
     public void sendMessage(final Message message) {
-        mailbox.add(message);
-        system.scheduleActorProcessing(this);
+        if (!closeOnNoMoreMessages.get()) {
+            mailbox.add(message);
+            system.scheduleActorProcessing(this);
+        }
     }
 
     // MESSAGE PROCESSING

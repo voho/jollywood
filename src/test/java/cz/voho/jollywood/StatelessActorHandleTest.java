@@ -6,9 +6,10 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+
+import java.util.regex.Pattern;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +19,8 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StatelessActorHandleTest {
+    private static final Pattern UUID_PATTERN = Pattern.compile("\\{[a-zA-Z0-9\\-]{36}\\}");
+
     @Mock
     private ActorSystem actorSystemMock;
     @Mock
@@ -28,7 +31,7 @@ public class StatelessActorHandleTest {
     public void prepare() {
         actorHandle = new ActorHandle(actorSystemMock) {
             @Override
-            protected void processMessage(Message message) throws Exception {
+            protected void processMessage(final Message message) throws Exception {
                 definitionMock.processMessage(this, message);
             }
         };
@@ -36,7 +39,7 @@ public class StatelessActorHandleTest {
 
     @Test
     public void testCreateActor() throws Exception {
-        ActorHandle createdActorHandle = actorHandle.getSystem().defineActor(definitionMock);
+        final ActorHandle createdActorHandle = actorHandle.getSystem().defineActor(definitionMock);
 
         assertNotEquals(createdActorHandle, actorHandle);
 
@@ -58,7 +61,7 @@ public class StatelessActorHandleTest {
 
     @Test
     public void testSendMessage() throws Exception {
-        Message messageMock = mock(Message.class);
+        final Message messageMock = mock(Message.class);
 
         actorHandle.sendMessage(messageMock);
 
@@ -70,7 +73,7 @@ public class StatelessActorHandleTest {
 
     @Test
     public void testProcessMessages() throws Exception {
-        Message messageMock = mock(Message.class);
+        final Message messageMock = mock(Message.class);
 
         actorHandle.sendMessage(messageMock);
         actorHandle.processMessages();
@@ -86,20 +89,17 @@ public class StatelessActorHandleTest {
 
     @Test
     public void testProcessMessagesAfterClose() throws Exception {
-        Message messageMock = mock(Message.class);
+        final Message messageMock = mock(Message.class);
 
         actorHandle.closeActor();
         actorHandle.sendMessage(messageMock);
         actorHandle.processMessages();
 
-        verify(actorSystemMock, times(2))
+        verify(actorSystemMock)
                 .scheduleActorProcessing(eq(actorHandle));
 
         verify(actorSystemMock)
                 .undefineActor(eq(actorHandle));
-
-        verify(definitionMock)
-                .processMessage(eq(actorHandle), eq(messageMock));
 
         verifyNoMoreInteractions(actorSystemMock, definitionMock, messageMock);
     }
@@ -110,7 +110,7 @@ public class StatelessActorHandleTest {
                 .when(definitionMock)
                 .processMessage(any(ActorHandle.class), any(Message.class));
 
-        Message messageMock = mock(Message.class);
+        final Message messageMock = mock(Message.class);
 
         actorHandle.sendMessage(messageMock);
         actorHandle.processMessages();
@@ -126,6 +126,6 @@ public class StatelessActorHandleTest {
 
     @Test
     public void testToString() {
-        assertTrue(actorHandle.toString().matches("\\{[a-zA-Z0-9\\-]{36}\\}"));
+        assertTrue(UUID_PATTERN.matcher(actorHandle.toString()).matches());
     }
 }

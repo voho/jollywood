@@ -8,7 +8,6 @@ import org.junit.Test;
 
 import cz.voho.jollywood.ActorHandle;
 import cz.voho.jollywood.ActorSystem;
-import cz.voho.jollywood.Message;
 import cz.voho.jollywood.StatefulActorDefinition;
 
 public class PingPongTest {
@@ -28,20 +27,17 @@ public class PingPongTest {
         final ActorSystem system = new ActorSystem(NUM_THREADS);
         final AtomicInteger pings = new AtomicInteger();
 
-        final StatefulActorDefinition playerDef = new StatefulActorDefinition<AtomicInteger>() {
-            @Override
-            public void processMessage(final ActorHandle self, final AtomicInteger counter, final Message message) {
-                if (counter.incrementAndGet() == NUM_PINGS) {
-                    pings.set(counter.get());
-                    self.getSystem().closeAllActors();
-                } else {
-                    if (message.subjectEquals("ping")) {
-                        System.out.println("PING");
-                        message.getSender().sendMessage(self, "pong", null);
-                    } else if (message.subjectEquals("pong")) {
-                        System.out.println("PONG");
-                        message.getSender().sendMessage(self, "ping", null);
-                    }
+        final StatefulActorDefinition<AtomicInteger> playerDef = (self, counter, message) -> {
+            if (counter.incrementAndGet() == NUM_PINGS) {
+                pings.set(counter.get());
+                self.getSystem().closeAllActors();
+            } else {
+                if (message.subjectEquals("ping")) {
+                    System.out.println("PING");
+                    message.getSender().sendMessage(self, "pong", null);
+                } else if (message.subjectEquals("pong")) {
+                    System.out.println("PONG");
+                    message.getSender().sendMessage(self, "ping", null);
                 }
             }
         };

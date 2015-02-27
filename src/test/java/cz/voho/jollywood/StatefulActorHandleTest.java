@@ -25,7 +25,7 @@ public class StatefulActorHandleTest {
     public void prepare() {
         actorHandle = new ActorHandle(actorSystemMock) {
             @Override
-            protected void processMessage(Message message) throws Exception {
+            protected void processMessage(final Message message) throws Exception {
                 definitionMock.processMessage(this, stateMock, message);
             }
         };
@@ -33,7 +33,7 @@ public class StatefulActorHandleTest {
 
     @Test
     public void testProcessMessages() throws Exception {
-        Message messageMock = mock(Message.class);
+        final Message messageMock = mock(Message.class);
 
         actorHandle.sendMessage(messageMock);
         actorHandle.processMessages();

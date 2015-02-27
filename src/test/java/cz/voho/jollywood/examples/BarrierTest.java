@@ -24,7 +24,7 @@ public class BarrierTest {
             });
         }
 
-        ActorHandle driverRef = system.defineActor((self, counter, message) -> {
+        final ActorHandle driverRef = system.defineActor((self, counter, message) -> {
             if (message.subjectEquals("ask")) {
                 self.getSystem().broadcastMessage(self, "question", null);
             } else if (message.subjectEquals("answer")) {
