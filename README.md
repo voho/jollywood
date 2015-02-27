@@ -3,80 +3,112 @@
 [![Travis](https://travis-ci.org/voho/jollywood.svg?branch=master)](https://travis-ci.org/voho/jollywood) [![codecov.io](https://codecov.io/github/voho/jollywood/coverage.svg?branch=master)](https://codecov.io/github/voho/jollywood?branch=master)
 
 Simple actor system written in Java.
-Jollywood... actors... like in Hollywood, but in Java, get the joke?
+Jollywood... actors... like Hollywood, but in Java, got the joke?
 Hahaha! Wonderful! But do not laugh the whole day and start working!
 
-## A little of theory
+## A little bit of theory
 
 - http://en.wikipedia.org/wiki/Actor_model
 
-## Actor system lifecycle
+## High-level overview
 
-Every actor must live in an actor system.
+The basic entity is an *Actor*. This entity consist of these things:
+
+- mailbox (queue of messages to process represented by the *Message* class)
+- behavior definition which defines how the actor reacts on messages (*StatefulActorDefinition*, *StatelessActorDefinition*)
+
+Each actor lives in an *ActorSystem*.
+An actor living in an actor system is represented by the *ActorHandle* class, which can be used to send messages to this actor.
+One actor definition can be used multiple times to create arbitrary actors in different systems.
+It is similar as object programming.
+You can imagine actor behavior definition as a class and the actor handle as an instance of that class.
+
+## Actor system
+
 You can create actor system like this:
 
     final ActorSystem system = new ActorSystem(8);
 
-The number parameter of actor system constructor specifies a count of threads dedicated to processing actor messages.
+The number parameter of the constructor specifies a count of threads dedicated to processing actor messages.
 
-After an actor system is ready and initial messages are sent, you can wait on actor system finish by calling this method:
+To close the actor system after all actors are closed, call this:
 
-    system.shutdown();
-    
-What this method does, is waiting for all actors to finish their work and then shuts the actor system down.
+    system.shutdownAfterActorsClosed();
+
+This method will block the current thread until all actors are closed.
+
+<span class="octicon octicon-telescope"></span>
+In the future, more options how to close system will be available.
 
 ## Defining an actor
 
-You can define actor behavior as a lambda function implementing the *ActorDefinition* function interface:
+You can define both stateless and stateful actors.
 
-    final ActorDefinition driverDef = (self, message) -> {
-      // ...message processing...
+### Stateless actors
+
+Stateless actors only define behavior based on messages.
+To define a behavior, you have to create an instance of *StatelessActorDefinition* functional interface.
+
+    StatelessActorDefinition statelessActorDef = new StatelessActorDefinition() {
+        @Override
+        public void processMessage(ActorHandle self, Message message) throws Exception {
+            // ...
+        }
     };
 
-Definition is independent of any actor system and can be actually used to define as many actors in as many different actor systems as you wish.
+Or you can make it shorter by using lambda:
 
-## Instantiating actor
+    StatelessActorDefinition statelessActorDef = (self, message) -> {
+        // ...
+    };
 
-Actor instance is basically an actor definition living in a certain actor system having its own message queue.
-To create an actor instance (e.g. to be able to send messages to it), you must register an actor definition into a certain actor system.
-You can do that like this:
+After the definition is ready, register it to an actor system to obtain a reference to this actor, like this:
 
-    final ActorHandle counterRef = system.defineActor("COUNTER", counterDef);
+    ActorHandle statelessActorRef = system.defineActor(statelessActorDef);
 
-This resulting handle can be used in application as an actor address.
+### Stateful actors
 
-## Closing actor
+Stateful actors define behavior based on message and some inner state, which is accessible whenever a message is processed.
 
-If you want to close a certain actor (remove it from its actor system), you can do it like this:
+    StatefulActorDefinition<State> statefulActorDef = new StatefulActorDefinition<State>() {
+            @Override
+            public void processMessage(ActorHandle self, State state, Message message) throws Exception {
+                // ...
+            }
+        };
 
-    counterRef.close();
+    Or you can make it shorter by using lambda:
 
-Also it is possible to close the current actor while processing messages, like this:
+        StatelessActorDefinition<State> statefulActorDef = (self, state, message) -> {
+            // ...
+        };
 
-    self.close();
+After the definition is ready, register it to an actor system adding an initial state to obtain a reference to this actor, like this:
 
-Closing an actor means that actor...
+    ActorHandle statefulActorRef = system.defineActor(statefulActorDef, new State());
 
-1. will not accept any more messages
-1. will finish processing of all its remaining messages in the queue
-1. will be removed from the actor system
-
-## Sending messages
+## Sending messages to single actor
 
 When sending messages, you must posses a recipient reference (instance of *ActorHandle*).
 
 You can send message to a single actor like this:
 
-    counterRef.sendMessage(self, new MessageContent("increment", "Hi, please increment your value by one."));
+    actorRef.sendMessage(self, "increment", "Hi, please increment your value by one.");
 
 Also you might reply to an original message sender like this:
 
-    message.getSender().sendMessage(self, new MessageContent("response", "I liked your message."));
+    message.getSender().sendMessage(self, "response", "I liked your message.");
+
+## Sending messages to all actors in a system
 
 You can also broadcast message to all actors in a certain system:
 
-    system.broadcastMessage(self, new MessageContent("invitation", "Let us go for a beer!"));
+    self.getSystem().broadcastMessage(self, "invitation", "Let us go for a beer!");
 
-## High-level architecture
+## Closing an actor
 
-![architecture](http://www.plantuml.com/plantuml/png/RKz13e903BplAoOSIVRW1qoC7hnuyWKh56nSMiDMbD_B4c8muT9sffrEcnuipz273id6I5FikR9N5zsXCkslOpBgKEmAgFSeoW8pVmvIHtAh6hxMj_WzBe7ZJJ-RlPaxKSF2nYfkcONFEaefjEIMF7kMsNFA2tTKCH9pJjG8aHg3Ddy70I4ZH1vOMh0W8Cq_E98QMRUbNfq4r1bGMZRTw1u6rlwd_m80)
+It is possible to close the current actor while processing messages, like this:
+
+    self.closeActor();
+
+Closing means that the closed actor will not accept any more messages and will be removed from the actor system after it finishes processing of the existing messages.
