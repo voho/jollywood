@@ -72,7 +72,7 @@ Stateful actors define behavior based on message and some inner state, which is 
 
     StatefulActorDefinition<State> statefulActorDef = new StatefulActorDefinition<State>() {
             @Override
-            public State processMessage(ActorHandle self, State state, Message message) throws Exception {
+            public void processMessage(ActorHandle self, State state, Message message) throws Exception {
                 // ...
             }
         };
